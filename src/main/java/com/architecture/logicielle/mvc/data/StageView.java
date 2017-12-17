@@ -9,12 +9,15 @@ import javax.validation.constraints.Size;
 public class StageView {
 	
 	public StageView() {
-		
+		this.sujet = "";
 	}
 	
 	public StageView(StageView stg1, StageView stg2) {
-
-		stg1.sujet = stg2.sujet;
+		if(stg2.sujet == null) {
+			stg1.sujet = "";
+		}else {
+			stg1.sujet = stg2.sujet;
+		}
 		stg1.dateDebut = stg2.dateFin;
 		stg1.dateFin = stg2.dateFin;
 		stg1.nomEntreprise = stg2.nomEntreprise;
