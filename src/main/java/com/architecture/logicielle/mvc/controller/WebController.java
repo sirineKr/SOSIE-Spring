@@ -72,7 +72,7 @@ public class WebController extends WebMvcConfigurerAdapter {
 	}
 
 	@PostMapping("/inscription")
-	public String InscriptionSubmit(Model model, @ModelAttribute @Valid UserView user, BindingResult bindingResult) {
+	public String InscriptionSubmit(Model model, @Valid @ModelAttribute UserView user, BindingResult bindingResult) {
 		model.addAttribute("user", user);
 
 		if (bindingResult.hasErrors()) {

@@ -1,94 +1,110 @@
 package com.architecture.logicielle.mvc.controller;
 
+import static org.junit.Assert.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
 import java.io.File;
 
+import org.hibernate.service.spi.InjectService;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultMatcher;
-import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
-import org.springframework.test.web.servlet.setup.DefaultMockMvcBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.web.context.WebApplicationContext;
+import org.springframework.web.servlet.view.InternalResourceViewResolver;
 
-import com.architecture.logicielle.mvc.data.UniteEnseignementView;
+import com.architecture.logicielle.Application;
 import com.architecture.logicielle.mvc.data.UserView;
 import com.architecture.logicielle.repository.StageRepository;
 import com.architecture.logicielle.repository.UniteEnseignementRepository;
 import com.architecture.logicielle.repository.UserRepository;
+import com.architecture.logicielle.repository.entities.UserEntity;
+import com.architecture.logicielle.service.UserService;
+import com.architecture.logicielle.service.UserServiceImpl;
 
 @RunWith(SpringRunner.class)
-@WebMvcTest(value = ControllerTest.class, secure = false)
+@SpringBootTest(classes = Application.class)
 public class HttpRequestTest {
 	
-	@Autowired
-    private WebApplicationContext wac;
     private MockMvc mockMvc;
-    private UserView userView;
-    private UniteEnseignementView ue;
+    File file = new File("new folder");
+	Long id = (long) 2222;
     
-    @MockBean
+	@InjectMocks
+    private WebController webController;
+	
+	@Mock
 	private UserRepository userRepository;
-    @MockBean
-	private UniteEnseignementRepository ueRepository;
-    @MockBean
-	private StageRepository stageRepository;
+	private UserService userService = new UserServiceImpl();
+	
 
+    private UserEntity userEntityStage =  new UserEntity("alexis","fiers","student","alexis@gmail.com","admin",file,id);
+	private UserView userViewStage =  new UserView("alexis","fiers","student","alexis@gmail.com","admin",file,id);
+	
     @Before
     public void setup() {
-        DefaultMockMvcBuilder builder = MockMvcBuilders.webAppContextSetup(this.wac);
-        this.mockMvc = builder.build();
+    		InternalResourceViewResolver viewResolver = new InternalResourceViewResolver();
+        viewResolver.setPrefix("/templates/");
+        viewResolver.setSuffix(".html");
+        
+    		MockitoAnnotations.initMocks(this);
+        this.mockMvc = MockMvcBuilders.standaloneSetup(webController).setViewResolvers(viewResolver).build();
     }
     
     @Test
     public void testShowFromInscription() throws Exception {
-        ResultMatcher msg = MockMvcResultMatchers.model()
-                            .attribute("userView", userView);
-    		
-        mockMvc.perform(get("/inscription")
-        	       .header("host", "localhost:8080"))
-        	       .andExpect(status().isOk())
-        	       .andExpect(msg);
-
+        mockMvc.perform(get("/inscription"))
+        	       .andExpect(status().isOk());
      }
     
-    /*@Test
+    @Test
     public void testInscriptionSubmit() throws Exception {
-    	File file = null;
-    	Long id = (long) 1111;
-        userView = new UserView("alexis","fiers","student","alexis.fiers@gmail.com","admin",file,id);
-    		ResultMatcher msg = MockMvcResultMatchers.model()
-                            .attribute("user", userView);
-    		
-        mockMvc.perform(get("/inscription")
-        	       .header("host", "localhost:8080"))
-        	       .andExpect(status().isOk())
-        	       .andExpect(msg);
-     }*/
+    		userRepository.deleteAll();
+        mockMvc.perform(post("/inscription")
+        		.param("firstName", userViewStage.getFirstName())
+    			.param("lastName", userViewStage.getLastName())
+    			.param("username", userViewStage.getUsername().toString())
+    			.param("statut", userViewStage.getStatut())
+    			.param("mail", userViewStage.getMail())
+    			.param("password", userViewStage.getPassword())
+    			.param("photo", userViewStage.getPhoto().toString()))
+        		.andExpect(redirectedUrl("/"));
+        
+        mockMvc.perform(post("/inscription")
+        		.sessionAttr("user", new UserView()))
+        		.andExpect(status().isOk()).andExpect(model().attribute("ErrorMessage", "Inalid from !"));
+     }
     
-    /*@Test
-    public void testUESubmitn() throws Exception {
-        ue = new UniteEnseignementView();
-    		ResultMatcher msg = MockMvcResultMatchers.model()
-                            .attribute("ue", ue);
-    		
-        mockMvc.perform(get("/ue")
-        	       .header("host", "localhost:8080"))
-        	       .andExpect(status().isOk())
-        	       .andExpect(msg);
-
-     }*/
+    @Test
+    public void testEditProfileSubmit() throws Exception {
+    	mockMvc.perform(post("/edit")
+        		.sessionAttr("user", new UserView()))
+        		.andExpect(model().attribute("ErrorMessage", "Inalid from !"));
+    	
+    	mockMvc.perform(post("/edit")
+        		.param("firstName", userViewStage.getFirstName())
+    			.param("lastName", userViewStage.getLastName())
+    			.param("username", userViewStage.getUsername().toString())
+    			.param("statut", userViewStage.getStatut())
+    			.param("mail", userViewStage.getMail())
+    			.param("password", userViewStage.getPassword())
+    			.param("photo", userViewStage.getPhoto().toString()))
+        		.andExpect(redirectedUrl("/"));
+      
+    }
 
 }
